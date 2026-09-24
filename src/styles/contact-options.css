@@ -1,0 +1,13 @@
+.contact-options { display: grid; gap: 12px; margin-bottom: 26px; }
+.contact-option { display: flex; align-items: center; gap: 16px; padding: 18px; min-width: 0; border: 1px solid var(--line); border-radius: 8px; background: rgb(255 255 255 / 2%); transition: border-color .2s, background .2s; }
+.contact-option > svg { flex-shrink: 0; color: var(--accent); }
+.contact-option > svg:last-child { margin-left: auto; }
+.contact-option > span { min-width: 0; }
+.contact-option-label { display: block; font-size: 10px; letter-spacing: 1.3px; color: var(--muted); margin-bottom: 7px; }
+.contact-option-value { display: block; font-size: 15px; overflow-wrap: anywhere; }
+.contact-option:hover { border-color: var(--accent); background: rgb(211 168 124 / 5%); }
+.contact-whatsapp > svg:first-child { color: #25d366; }
+.contact-recipient { color: var(--muted); font-size: 13px; line-height: 1.7; margin-top: 12px; overflow-wrap: anywhere; }
+.contact-recipient a { color: var(--accent); }
+.contact-form .contact-gmail { margin-top: 12px; }
+@media (max-width: 374px) { .contact-option { padding: 14px; gap: 12px; } .contact-option-value { font-size: 14px; } }
