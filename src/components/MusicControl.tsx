@@ -3,7 +3,7 @@ import { Music2, Pause, Play } from 'lucide-react';
 import { getMusicStatus, subscribeMusic, toggleMusic } from '@/lib/background-music';
 export default function MusicControl() {
   const status = useSyncExternalStore(subscribeMusic, getMusicStatus);
-  const playing = status === 'playing' || status === 'starting';
+  const playing = status === 'playing';
   return <button type="button" className="sound-toggle music-toggle" data-sound="silent" data-music-control
     aria-label="Background music" aria-pressed={playing} disabled={status === 'unavailable'}
     title={status === 'unavailable' ? 'Music is unavailable' : playing ? 'Pause background music' : 'Play background music'}

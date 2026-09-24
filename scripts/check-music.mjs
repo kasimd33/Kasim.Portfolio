@@ -1,5 +1,6 @@
 import {chromium,expect} from '@playwright/test';
 import assert from 'node:assert/strict';
+const siteUrl = process.env.MUSIC_TEST_URL || 'http://127.0.0.1:4173/';
 async function instrument(context){
  await context.addInitScript(()=>{
   const NativeAudio=window.Audio;window.Audio=function(...args){const audio=new NativeAudio(...args);window.musicPlayer=audio;return audio;};
@@ -14,7 +15,7 @@ try{
  const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});await instrument(context);
  await context.addInitScript(()=>localStorage.setItem('kasim-music-enabled','false'));
  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('http://127.0.0.1:4173/#home');
+ await page.goto(siteUrl);
  const toggle=page.getByRole('button',{name:'Background music',exact:true});
  await expect(toggle).toHaveAttribute('aria-pressed','true');
  await expect.poll(()=>page.evaluate(()=>window.musicPlayer?.currentTime||0),{timeout:15000}).toBeGreaterThan(.35);
@@ -47,7 +48,7 @@ try{
 const restricted=await chromium.launch({channel:'chrome',headless:true,args:['--autoplay-policy=document-user-activation-required']});
 try{
  const context=await restricted.newContext({reducedMotion:'reduce'});await instrument(context);const page=await context.newPage();
- await page.goto('http://127.0.0.1:4173/#home');await page.locator('.portfolio-intro').waitFor({state:'detached'});
+ await page.goto(siteUrl);await page.locator('.portfolio-intro').waitFor({state:'detached'});
  await expect(page.getByRole('button',{name:'Background music',exact:true})).toHaveAttribute('aria-pressed','false');
  await page.locator('#hero-heading').click();
  await expect.poll(()=>page.evaluate(()=>window.musicPlayer.currentTime),{timeout:15000}).toBeGreaterThan(.3);

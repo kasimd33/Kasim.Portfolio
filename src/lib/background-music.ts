@@ -21,7 +21,13 @@ function publish(next: MusicStatus) { if (status !== next) { status = next; list
 function ramp(node: GainNode | null, value: number, seconds = MUSIC_FADE_SECONDS) {
   if (!context || !node) return;
   const now = context.currentTime;
-  node.gain.cancelAndHoldAtTime(now);
+  // Firefox and older Safari versions do not support cancelAndHoldAtTime.
+  if (typeof node.gain.cancelAndHoldAtTime === 'function') node.gain.cancelAndHoldAtTime(now);
+  else {
+    const current = node.gain.value;
+    node.gain.cancelScheduledValues(now);
+    node.gain.setValueAtTime(current, now);
+  }
   node.gain.linearRampToValueAtTime(value, now + seconds);
 }
 function watchLoop() {
@@ -41,6 +47,16 @@ function watchLoop() {
   previousTime = time;
   frame = requestAnimationFrame(watchLoop);
 }
+function confirmPlayback() {
+  if (!wanted || document.hidden || !player || player.paused || player.readyState < 2 || context?.state !== 'running' || status === 'playing') return;
+  ramp(volume, MUSIC_VOLUME);
+  ramp(loopEnvelope, 1);
+  publish('playing');
+  if (frame !== undefined) cancelAnimationFrame(frame);
+  previousTime = player.currentTime;
+  fadingAtEnd = false;
+  watchLoop();
+}
 async function start() {
   if (!wanted || document.hidden || !player || !context) return;
   const request = ++intent;
@@ -48,16 +64,17 @@ async function start() {
   if (!player.paused && context.state === 'running' && status === 'playing') return;
   publish('starting');
   try {
-    // Both calls happen during the same user gesture when autoplay needs permission.
-    await Promise.all([context.resume(), player.play()]);
+    // resume() can stay pending while autoplay is blocked. Do not let that
+    // promise hold the player in a false "playing" state or prevent a retry.
+    void context.resume().then(confirmPlayback).catch(() => {
+      if (request === intent && wanted) publish('blocked');
+    });
+    const playback = player.play();
+    if (context.state !== 'running') publish('blocked');
+    await playback;
     if (request !== intent || !wanted || document.hidden) return;
-    ramp(volume, MUSIC_VOLUME);
-    ramp(loopEnvelope, 1);
-    publish('playing');
-    if (frame !== undefined) cancelAnimationFrame(frame);
-    previousTime = player.currentTime;
-    fadingAtEnd = false;
-    watchLoop();
+    confirmPlayback();
+    if (context.state !== 'running') publish('blocked');
   } catch (error) {
     if (request !== intent) return;
     publish(error instanceof DOMException && error.name === 'NotSupportedError' ? 'unavailable' : 'blocked');
@@ -72,7 +89,7 @@ function pause() {
   stopTimer = setTimeout(() => { player?.pause(); }, MUSIC_FADE_SECONDS * 1000);
 }
 export function toggleMusic() {
-  if (status === 'playing' || status === 'starting') { wanted = false; pause(); }
+  if (status === 'playing') { wanted = false; pause(); }
   else { wanted = true; void start(); }
 }
 export function initializeMusic() {
@@ -81,7 +98,7 @@ export function initializeMusic() {
     player = new Audio('/audio/acceptance-relaxdaily.mp3');
     player.loop = true;
     player.autoplay = true;
-    player.preload = 'metadata';
+    player.preload = 'auto';
     player.setAttribute('playsinline', '');
     context = new AudioContext();
     volume = context.createGain();
@@ -94,13 +111,20 @@ export function initializeMusic() {
   const gesture = (event: Event) => {
     if (!event.isTrusted || (event.target instanceof Element && event.target.closest('[data-music-control]'))) return;
     if (event instanceof KeyboardEvent && (event.repeat || event.ctrlKey || event.altKey || event.metaKey)) return;
-    if (wanted && (status === 'blocked' || status === 'starting')) void start();
+    if (wanted && status !== 'playing' && status !== 'unavailable') void start();
+  };
+  const contextChanged = () => {
+    if (context?.state === 'running') confirmPlayback();
+    else if (wanted && !document.hidden && status === 'playing') publish('blocked');
   };
   const visibility = () => { if (document.hidden) pause(); else if (wanted) void start(); };
   const pageHide = () => { pause(); player?.pause(); };
   player.addEventListener('error', failed);
-  document.addEventListener('pointerup', gesture);
-  document.addEventListener('keydown', gesture);
+  player.addEventListener('playing', confirmPlayback);
+  context.addEventListener('statechange', contextChanged);
+  // Capture clicks/taps even when a project dialog stops event propagation.
+  const gestures = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
+  for (const event of gestures) document.addEventListener(event, gesture, { capture: true, passive: true });
   document.addEventListener('visibilitychange', visibility);
   window.addEventListener('pagehide', pageHide);
   window.addEventListener('pageshow', visibility);
@@ -109,12 +133,13 @@ export function initializeMusic() {
     ++intent;
     clearTimeout(stopTimer);
     if (frame !== undefined) cancelAnimationFrame(frame);
-    document.removeEventListener('pointerup', gesture);
-    document.removeEventListener('keydown', gesture);
+    for (const event of gestures) document.removeEventListener(event, gesture, true);
     document.removeEventListener('visibilitychange', visibility);
     window.removeEventListener('pagehide', pageHide);
     window.removeEventListener('pageshow', visibility);
     player?.removeEventListener('error', failed);
+    player?.removeEventListener('playing', confirmPlayback);
+    context?.removeEventListener('statechange', contextChanged);
     player?.pause();
     player?.removeAttribute('src');
     player?.load();
