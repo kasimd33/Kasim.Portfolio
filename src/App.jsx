@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import About from './components/About';
@@ -32,6 +33,6 @@ export default function App({ introComplete = true }) {
     media.addEventListener('change', update);
     return () => { generation++; cleanup?.(); media.removeEventListener('change', update); };
   }, [introComplete]);
-  return <div ref={root}><a href="#main" className="skip-link">Skip to content</a><Navbar /><main id="main"><Hero /><Skills /><About /><Projects /><Experience /><Certifications /><Contact /></main><Footer /></div>;
+  return <div ref={root}><a href="#main" className="skip-link">Skip to content</a><Navbar /><main id="main"><Hero /><Skills /><About /><Projects /><Experience /><Certifications /><Contact /></main><Footer /><Analytics /></div>;
 }
 
