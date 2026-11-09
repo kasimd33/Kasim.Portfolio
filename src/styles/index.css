@@ -29,3 +29,4 @@
 @media(max-width:767px){.tech-stage{height:352px;perspective:1000px}.tech-cylinder,.tech-stage-flat .tech-face{height:290px}.tech-stage-flat .tech-face{width:218px}.tech-card-meta{padding:12px 16px}.tech-card-name{font-size:19px}.tech-card-category{font-size:8px}.tech-carousel{margin-bottom:32px}.tech-controls{align-items:flex-start;gap:10px;margin-top:6px}.tech-drag-hint{font-size:9px;letter-spacing:.8px;padding-top:5px}.tech-drag-hint>span{font-size:10px;max-width:120px;line-height:1.5}.tech-paging{gap:11px}.tech-carousel-placeholder{min-height:425px}.tech-stage:before,.tech-stage:after{width:5%}}
 .tech-carousel:focus-visible{outline:1px solid var(--accent);outline-offset:-6px;border-radius:6px}
 @media(max-width:767px){.tech-paging{gap:7px}.tech-paging button{width:40px;height:40px}.tech-paging p{min-width:43px;font-size:11px}.tech-controls{gap:6px}.tech-drag-hint>span{max-width:100px}}
+
